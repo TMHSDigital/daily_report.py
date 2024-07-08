@@ -1,52 +1,60 @@
 # Daily News Report Automation
 
-This project automates the process of fetching the latest AI news, stock market news, and cryptocurrency news, and sends a daily report via email. The automation is powered by GitHub Actions and uses the NewsAPI to retrieve news articles.
+This project automates the process of fetching the latest AI news, stock market news, and cryptocurrency news, and sends a daily report via email or displays it on a web interface. The automation is powered by GitHub Actions and uses the NewsAPI to retrieve news articles.
 
 ## Features
 
 - Fetches the latest AI news, stock market news, and cryptocurrency news.
 - Sends a daily report via email using Gmail SMTP.
-- Scheduled to run every day at 9:00 AM UTC.
+- Generates a daily report as a JSON file for a web interface.
+- Scheduled to run every day at 9:00 AM UTC for the email version.
 - Secure storage of sensitive information using GitHub Secrets.
 
-## How It Works
-
-1. **Fetch News**: The script fetches news articles from NewsAPI based on predefined queries.
-2. **Generate Report**: The fetched news articles are compiled into a daily report.
-3. **Send Email**: The daily report is sent to the specified email address using Gmail SMTP.
-
-## Learn More
+## Badges
 
 [![Visit TM Hospitality Strategies on LinkedIn](https://img.shields.io/badge/Visit%20Us%20on-LinkedIn-blue?logo=linkedin)](https://www.linkedin.com/company/tm-hospitality-strategies/?viewAsMember=true)
 [![Powered by NewsAPI](https://img.shields.io/badge/Powered%20by-NewsAPI-red?logo=newsapi)](https://newsapi.org/)
 
-## Setup
+## Repository Structure
 
-### Prerequisites
+```
+/daily_report
+  /email_version
+    - daily_report_email.py
+  /web_version
+    - daily_report_web.py
+    - index.html
+    - styles.css
+    - script.js
+/.github
+  /workflows
+    - send_daily_report.yml
+```
+
+## Email Version
+
+### Setup
+
+#### Prerequisites
 
 - Python 3.x
 - GitHub account
 - NewsAPI account ([Get API Key](https://newsapi.org/))
 
-### Repository Secrets
+#### Repository Secrets
 
-Add the following secrets to your GitHub repository:
+Add the following secrets to your GitHub repository (Settings > Secrets and variables > Actions > New repository secret):
 
-1. `SENDER_EMAIL` - Your email address (e.g., `TMHospitalityStrategies@gmail.com`)
-2. `RECEIVER_EMAIL` - Recipient email address (e.g., `TMHospitalityStrategies@gmail.com`)
-3. `EMAIL_PASSWORD` - Your email password
-4. `NEWS_API_KEY` - Your NewsAPI key
-
-### Steps to Add Secrets
-
-1. Navigate to your repository on GitHub.
-2. Click on the "Settings" tab.
-3. In the left sidebar, click on "Secrets and variables" and then "Actions".
-4. Click on "New repository secret" and add each secret.
+1. `SENDER_EMAIL`
+2. `RECEIVER_EMAIL`
+3. `EMAIL_PASSWORD`
+4. `NEWS_API_KEY`
 
 ### Python Script
 
-Ensure the Python script (`daily_report.py`) uses the environment variables:
+Ensure the Python script (`email_version/daily_report_email.py`) uses the environment variables.
+
+**`email_version/daily_report_email.py`**:
 
 ```python
 import requests
@@ -155,12 +163,187 @@ jobs:
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
-        run: python daily_report.py
+        run: python email_version/daily_report_email.py
 ```
 
-## Running the Workflow
+## Web Version
 
-You can manually trigger the workflow from the Actions tab in your GitHub repository or wait for the scheduled time (9:00 AM UTC) for it to run automatically.
+### Setup
+
+#### Prerequisites
+
+- Python 3.x
+- GitHub Pages enabled for the repository
+- NewsAPI account ([Get API Key](https://newsapi.org/))
+
+### Files
+
+Ensure the following files are in the `web_version` directory:
+
+**`web_version/daily_report_web.py`**:
+
+```python
+import requests
+import json
+import os
+
+def fetch_news(query, category=None):
+    NEWS_API_KEY = os.getenv('NEWS_API_KEY')
+    url = 'https://newsapi.org/v2/everything' if query else 'https://newsapi.org/v2/top-headlines'
+    params = {
+        'q': query,
+        'category': category,
+        'apiKey': NEWS_API_KEY,
+        'pageSize': 5,  # Limit to top 5 articles
+    }
+    response = requests.get(url, params=params)
+    articles = response.json().get('articles', [])
+    news = f"{query.title() if query else category.title()} News:\n"
+    for article in articles:
+        news += f"- {article['title']} ({article['source']['name']}): {article['url']}\n"
+    return news
+
+def generate_report():
+    ai_news = fetch_news('artificial intelligence')
+    stock_news = fetch_news(None, 'business')
+    crypto_news = fetch_news('cryptocurrency')
+    
+    report_content = {
+        "ai_news": ai_news,
+        "stock_news": stock_news,
+        "crypto_news": crypto_news
+    }
+    
+    with open('report.json', 'w') as report_file:
+        json.dump(report_content, report_file)
+
+if __name__ == "__main__":
+    generate_report()
+```
+
+**`web_version/index.html`**:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily News Report</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Daily News Report</h1>
+  </header>
+  <main>
+    <section id="report">
+      <h2>Today's Report</h2>
+      <div id="content">
+        <!-- Report content will be inserted here -->
+      </div>
+    </section>
+  </main>
+  <footer>
+    <p>For more information and custom AI solutions, visit us on <a href="https://www.linkedin.com/company/tm-hospitality-strategies/?viewAsMember=true" target="_blank">LinkedIn</a>.</p>
+    <p>Powered by <a href="https://newsapi.org/" target="_blank">NewsAPI</a>.</p>
+  </footer>
+</body>
+</html>
+```
+
+**`web_version/styles.css`**:
+
+```css
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+header {
+  background-color: #4CAF50;
+  color: white;
+  padding: 1rem;
+  text-align: center;
+}
+
+main {
+  flex: 1;
+  padding: 2rem;
+}
+
+section#report {
+  background-color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,
+
+ 0, 0, 0.1);
+}
+
+footer {
+  background-color: #333;
+  color: white;
+  text-align: center;
+  padding: 1rem;
+}
+
+footer a {
+  color: #4CAF50;
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+```
+
+**`web_version/script.js`**:
+
+```javascript
+document.addEventListener('DOMContentLoaded', () => {
+  const contentDiv = document.getElementById('content');
+
+  fetch('report.json')
+    .then(response => response.json())
+    .then(data => {
+      contentDiv.innerHTML = `
+        <h3>AI News</h3>
+        <p>${data.ai_news}</p>
+        <h3>Stock Market News</h3>
+        <p>${data.stock_news}</p>
+        <h3>Crypto News</h3>
+        <p>${data.crypto_news}</p>
+      `;
+    })
+    .catch(error => {
+      contentDiv.innerHTML = `<p>Failed to load the report: ${error}</p>`;
+    });
+});
+```
+
+### Running the Script
+
+Run the Python script to generate the `report.json` file:
+
+```sh
+python web_version/daily_report_web.py
+```
+
+### GitHub Pages
+
+Ensure GitHub Pages is enabled in your repository settings and points to the `web_version` directory.
 
 ## License
 
