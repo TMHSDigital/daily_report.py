@@ -4,10 +4,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 
-# Replace with your actual API key from NewsAPI
-NEWS_API_KEY = '7846c0871ebc45e3b226a9fc6f54eef4'
-
 def fetch_news(query, category=None):
+    NEWS_API_KEY = os.getenv('NEWS_API_KEY')
     url = 'https://newsapi.org/v2/everything' if query else 'https://newsapi.org/v2/top-headlines'
     params = {
         'q': query,
@@ -39,10 +37,9 @@ def generate_report():
     return report_content
 
 def send_email(report_content):
-    # Fetch email credentials from environment variables
-    sender_email = os.getenv("SENDER_EMAIL")
-    receiver_email = os.getenv("RECEIVER_EMAIL")
-    password = os.getenv("EMAIL_PASSWORD")
+    sender_email = os.getenv('SENDER_EMAIL')
+    receiver_email = os.getenv('RECEIVER_EMAIL')
+    password = os.getenv('EMAIL_PASSWORD')
 
     # Email subject and body
     subject = "Daily Report"
